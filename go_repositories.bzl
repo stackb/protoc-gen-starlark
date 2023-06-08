@@ -140,8 +140,8 @@ def go_repositories():
         name = "com_github_stackb_grpc_starlark",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/stackb/grpc-starlark",
-        sum = "h1:s46RFs1XDuORMxJ+Z9qfeYRW50yiaBq8gIj1vWpqsXE=",
-        version = "v0.3.0",
+        sum = "h1:Ow94MoO4mJ7HudWmxb5FFeqbm2IRWjXId/IxCav6wao=",
+        version = "v0.4.0",
     )
 
     go_repository(
