@@ -1,0 +1,84 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
+load("//:platforms.bzl", "platforms")
+
+# gazelle:ignore testdata
+
+go_library(
+    name = "protoc-gen-starlark_lib",
+    srcs = ["main.go"],
+    embedsrcs = ["plugin_descriptor.pb"],
+    importpath = "github.com/stackb/grpc-starlark/cmd/protoc-gen-starlark",
+    visibility = ["//visibility:private"],
+    deps = [
+        "@com_github_stackb_grpc_starlark//pkg/program",
+        "@com_github_stackb_grpc_starlark//pkg/protodescriptorset",
+        "@com_github_stripe_skycfg//go/protomodule",
+        "@net_starlark_go//starlark",
+        "@org_golang_google_protobuf//proto",
+        "@org_golang_google_protobuf//reflect/protodesc",
+        "@org_golang_google_protobuf//reflect/protoreflect",
+        "@org_golang_google_protobuf//reflect/protoregistry",
+        "@org_golang_google_protobuf//types/pluginpb",
+    ],
+)
+
+go_binary(
+    name = "protoc-gen-starlark",
+    embed = [":protoc-gen-starlark_lib"],
+    visibility = ["//visibility:public"],
+)
+
+[
+    go_binary(
+        name = "protoc-gen-starlark_%s_%s" % (
+            platform.os,
+            platform.arch,
+        ),
+        embed = [":protoc-gen-starlark_lib"],
+        gc_linkopts = platform.gc_linkopts,
+        goarch = platform.arch,
+        goos = platform.os,
+        pure = "on",
+        static = "on",
+        visibility = ["//visibility:public"],
+    )
+    for platform in platforms
+]
+
+[
+    genrule(
+        name = "protoc-gen-starlark_%s_%s_zip" % (
+            platform.os,
+            platform.arch,
+        ),
+        srcs = ["protoc-gen-starlark_%s_%s" % (
+            platform.os,
+            platform.arch,
+        )],
+        outs = ["protoc-gen-starlark_%s_%s.zip" % (
+            platform.os,
+            platform.arch,
+        )],
+        cmd = """
+    cp $(location protoc-gen-starlark_{os}_{arch}) protoc-gen-starlark
+    $(location @bazel_tools//tools/zip:zipper) c $@ protoc-gen-starlark
+    """.format(
+            arch = platform.arch,
+            os = platform.os,
+        ),
+        tools = ["@bazel_tools//tools/zip:zipper"],
+        visibility = ["//visibility:public"],
+    )
+    for platform in platforms
+]
+
+go_test(
+    name = "protoc-gen-starlark_test",
+    srcs = ["main_test.go"],
+    data = glob(["testdata/**"]),
+    embed = [":protoc-gen-starlark_lib"],
+    deps = [
+        "@com_github_google_go_cmp//cmp",
+        "@net_starlark_go//lib/time",
+    ],
+)

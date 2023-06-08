@@ -1,0 +1,12 @@
+{
+  "error": null,
+  "supported_features": null,
+  "file": [
+    {
+      "name": "a.proto.txt",
+      "insertion_point": null,
+      "content": "Fake Content",
+      "generated_code_info": null
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+load("@bazel_gazelle//:def.bzl", "gazelle", "gazelle_binary")
+load("@build_stack_rules_proto//rules:proto_gazelle.bzl", "DEFAULT_LANGUAGES", "proto_gazelle")
+
+exports_files(["rules_proto_config.yaml"])
+
+# -- Gazelle language "walk" ---
+# gazelle:exclude vendor
+# gazelle:ignore testdata
+
+# -- Gazelle language "resolve" ---
+
+# -- Gazelle language "go" ---
+# gazelle:prefix github.com/stackb/protoc-gen-starlark
+# gazelle:go_generate_proto false
+
+# -- Gazelle language "protobuf" ---
+
+gazelle_binary(
+    name = "gazelle-protobuf",
+    languages = DEFAULT_LANGUAGES,
+)
+
+proto_gazelle(
+    name = "gazelle",
+    cfgs = ["//:rules_proto_config.yaml"],
+    command = "update",
+    gazelle = ":gazelle-protobuf",
+    imports = ["@protoapis//:imports.csv"],
+)
+
+gazelle(
+    name = "update_go_repositories",
+    args = [
+        "-from_file=go.mod",
+        "-to_macro=go_repositories.bzl%go_repositories",
+        "-build_file_proto_mode=disable_global",
+        "-prune=true",
+    ],
+    command = "update-repos",
+)
