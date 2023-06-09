@@ -26,5 +26,5 @@ def generate(request):
     return [response]
 
 def main(ctx):
-    # return generate(ctx.vars.request)
-    return generate(fake_request)
+    return generate(ctx.vars.request)
+    # return generate(fake_request)

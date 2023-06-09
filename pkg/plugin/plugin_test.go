@@ -1,20 +1,23 @@
-package main
+package plugin
 
 import (
-	"bytes"
+	_ "embed"
 	"flag"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/stackb/grpc-starlark/pkg/protodescriptorset"
 	libtime "go.starlark.net/lib/time"
 )
 
 var update = flag.Bool("update", false, "update golden files")
+
+//go:embed descriptor.pb
+var unittestDescriptor []byte
 
 func TestGoldens(t *testing.T) {
 	flag.Parse()
@@ -57,28 +60,60 @@ func TestGoldens(t *testing.T) {
 			})
 		}
 	}
+	if len(tests) == 0 {
+		t.Fatal("no tests found!")
+	}
 
 	for _, pair := range tests {
 		t.Run(pair.file, func(t *testing.T) {
-			wd, err := os.Getwd()
+			outFile, err := os.Create(pair.outFile)
 			if err != nil {
 				t.Fatal(err)
 			}
-			listFiles(t, wd)
-
-			tmpdir := t.TempDir()
-			gotOut, gotErr, err := runProtoc(wd, tmpdir, pair.file)
+			errFile, err := os.Create(pair.errFile)
 			if err != nil {
-				t.Log(string(gotOut))
-				t.Log(string(gotErr))
-				t.Fatal("protoc error:", err)
+				t.Fatal(err)
+			}
+			stdout := os.Stdout
+			stderr := os.Stderr
+			os.Stdout = outFile
+			os.Stderr = errFile
+			defer func() {
+				os.Stderr = stdout
+				os.Stderr = stderr
+			}()
+
+			files, err := protodescriptorset.ParseFiles(unittestDescriptor)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			plugin := &Plugin{
+				Files: files,
+			}
+			if err := plugin.Run([]string{
+				"-file=" + filepath.Join("testdata", pair.file),
+				"-o", "stablejson",
+			}); err != nil {
+				t.Fatal(err)
+			}
+			outFile.Close()
+			errFile.Close()
+
+			gotOut, err := os.ReadFile(pair.outFile)
+			if err != nil {
+				t.Fatal("reading out file:", err)
+			}
+			gotErr, err := os.ReadFile(pair.errFile)
+			if err != nil {
+				t.Fatal("reading err file:", err)
 			}
 
 			if *update {
 				if workspaceDir == "" {
 					t.Fatal("BUILD_WORKING_DIRECTORY not set!")
 				}
-				dir := filepath.Join(workspaceDir, "cmd", "protoc-gen-starlark", "testdata")
+				dir := filepath.Join(workspaceDir, "pkg", "plugin", "testdata")
 				if err := os.WriteFile(filepath.Join(dir, pair.goldenOutFile), gotOut, os.ModePerm); err != nil {
 					t.Fatal("writing goldenOut file:", err)
 				}
@@ -105,46 +140,4 @@ func TestGoldens(t *testing.T) {
 			}
 		})
 	}
-}
-
-func runProtoc(cwd, dir string, filename string) ([]byte, []byte, error) {
-	pluginPath := filepath.Join(cwd, "protoc-gen-starlark.exe")
-	cmd := exec.Command("protoc.exe",
-		"--descriptor_set_in=descriptor.pb",
-		"--starlark_out="+dir,
-		// "--star_out="+dir,
-		// "--star_opt=hello",
-		"--plugin=plugin-gen-starlark="+pluginPath,
-		"google/protobuf/unittest.proto",
-	)
-
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	// cmd.Dir = dir
-
-	if err := cmd.Run(); err != nil {
-		return stdout.Bytes(), stderr.Bytes(), err
-	}
-	return stdout.Bytes(), stderr.Bytes(), nil
-}
-
-func listFiles(t *testing.T, dir string) error {
-	return filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			t.Logf("%v\n", err)
-			return err
-		}
-		// if info.Mode()&os.ModeSymlink > 0 {
-		// 	link, err := os.Readlink(path)
-		// 	if err != nil {
-		// 		return err
-		// 	}
-		// 	t.Logf("%s -> %s", path, link)
-		// 	return nil
-		// }
-		t.Log(strings.TrimPrefix(path, dir+"/"))
-		return nil
-	})
 }

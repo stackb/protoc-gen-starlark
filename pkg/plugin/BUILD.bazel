@@ -1,0 +1,42 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+load("@rules_proto//proto:defs.bzl", "proto_descriptor_set")
+
+# gazelle:ignore testdata
+
+go_library(
+    name = "plugin",
+    srcs = ["plugin.go"],
+    embedsrcs = ["plugin_descriptor.pb"],
+    importpath = "github.com/stackb/protoc-gen-starlark/pkg/plugin",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_github_stackb_grpc_starlark//pkg/program",
+        "@com_github_stackb_grpc_starlark//pkg/protodescriptorset",
+        "@com_github_stripe_skycfg//go/protomodule",
+        "@net_starlark_go//starlark",
+        "@org_golang_google_protobuf//proto",
+        "@org_golang_google_protobuf//reflect/protodesc",
+        "@org_golang_google_protobuf//reflect/protoregistry",
+        "@org_golang_google_protobuf//types/pluginpb",
+    ],
+)
+
+go_test(
+    name = "plugin_test",
+    srcs = ["plugin_test.go"],
+    data = glob(["testdata/**"]),
+    embed = [":plugin_lib"],
+    embedsrcs = ["descriptor"],
+    deps = [
+        "@com_github_google_go_cmp//cmp",
+        "@com_github_stackb_grpc_starlark//pkg/protodescriptorset",
+        "@net_starlark_go//lib/time",
+    ],
+)
+
+proto_descriptor_set(
+    name = "descriptor",
+    deps = [
+        "@protoapis//google/protobuf:unittest_proto",
+    ],
+)
