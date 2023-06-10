@@ -23,6 +23,7 @@ type testFile struct {
 }
 
 type goldenTest struct {
+	name           string
 	pluginFile     testFile
 	outFile        testFile
 	errFile        testFile
@@ -48,24 +49,25 @@ func TestGoldens(t *testing.T) {
 	var tests []*goldenTest
 
 	testdata := "testdata"
-	entries, err := os.ReadDir(testdata)
+	testdataEntries, err := os.ReadDir(testdata)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(entries) == 0 {
+	if len(testdataEntries) == 0 {
 		t.Fatal("no test files found!")
 	}
 
-	for _, file := range entries {
-		if !file.IsDir() {
+	for _, testdataDir := range testdataEntries {
+		if !testdataDir.IsDir() {
 			continue
 		}
-		if !strings.HasPrefix(file.Name(), "protoc-gen-") {
+		if !strings.HasPrefix(testdataDir.Name(), "protoc-gen-") {
 			continue
 		}
 
 		var tc goldenTest
-		tc.pluginFile = testFile{path: filepath.Join(testdata, file.Name(), "plugin.star")}
+		tc.name = testdataDir.Name()
+		tc.pluginFile = testFile{path: filepath.Join(testdata, tc.name, "plugin.star")}
 		tc.errFile = testFile{path: tc.pluginFile.path + ".stderr.tmp"}
 		tc.outFile = testFile{path: tc.pluginFile.path + ".stdout.tmp"}
 		tc.goldenOutFile = testFile{path: tc.pluginFile.path + ".stdout"}
@@ -105,7 +107,7 @@ func TestGoldens(t *testing.T) {
 					t.Fatal("writing goldenErr file:", err)
 				}
 
-				genfiles := filepath.Join(dir, "genfiles")
+				genfiles := filepath.Join(dir, testdata, tc.name, "genfiles")
 				for _, gotFile := range gotFiles {
 					filename := filepath.Join(genfiles, gotFile.path)
 					dirname := filepath.Dir(filename)
@@ -117,7 +119,6 @@ func TestGoldens(t *testing.T) {
 					}
 					t.Log("wrote:", filename)
 				}
-				panic("wip")
 			} else {
 				wantOut, err := os.ReadFile(tc.goldenOutFile.path)
 				if err != nil {
