@@ -96,3 +96,17 @@ proto_descriptor_set(
     name = "unittest_descriptor",
     deps = ["@protoapis//google/protobuf:unittest_proto"],
 )
+
+sh_test(
+    name = "protoc-gen-foo_test",
+    srcs = [
+        "protoc-gen-foo_test.sh",
+    ],
+    data = [
+        "protoc.exe",
+        "protoc-gen-foo.sh",
+        "protoc-gen-foo.star",
+        "protoc-gen-unittest",
+        "unittest_descriptor",
+    ],
+)
