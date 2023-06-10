@@ -7,7 +7,6 @@ load("//:platforms.bzl", "platforms")
 go_library(
     name = "protoc-gen-starlark_lib",
     srcs = ["main.go"],
-    embedsrcs = ["plugin_descriptor.pb"],
     importpath = "github.com/stackb/grpc-starlark/cmd/protoc-gen-starlark",
     visibility = ["//visibility:private"],
     deps = ["//pkg/plugin"],

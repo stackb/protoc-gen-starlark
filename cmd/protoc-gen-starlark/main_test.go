@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"flag"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -15,6 +16,21 @@ import (
 )
 
 var update = flag.Bool("update", false, "update golden files")
+
+type testFile struct {
+	path    string
+	content []byte
+}
+
+type goldenTest struct {
+	pluginFile     testFile
+	outFile        testFile
+	errFile        testFile
+	genfiles       []testFile
+	goldenOutFile  testFile
+	goldenErrFile  testFile
+	goldenGenfiles []testFile
+}
 
 func TestGoldens(t *testing.T) {
 	flag.Parse()
@@ -29,16 +45,10 @@ func TestGoldens(t *testing.T) {
 		return now
 	}
 
-	type goldenTest struct {
-		file          string
-		goldenOutFile string
-		goldenErrFile string
-		outFile       string
-		errFile       string
-	}
 	var tests []*goldenTest
 
-	entries, err := os.ReadDir("testdata")
+	testdata := "testdata"
+	entries, err := os.ReadDir(testdata)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,30 +57,38 @@ func TestGoldens(t *testing.T) {
 	}
 
 	for _, file := range entries {
-		if strings.HasSuffix(file.Name(), ".plugin.star") {
-			tests = append(tests, &goldenTest{
-				file:          file.Name(),
-				goldenOutFile: file.Name() + ".out",
-				goldenErrFile: file.Name() + ".err",
-				outFile:       file.Name() + ".stdout",
-				errFile:       file.Name() + ".stderr",
-			})
+		if !file.IsDir() {
+			continue
 		}
+		if !strings.HasPrefix(file.Name(), "protoc-gen-") {
+			continue
+		}
+
+		var tc goldenTest
+		tc.pluginFile = testFile{path: filepath.Join(testdata, file.Name(), "plugin.star")}
+		tc.errFile = testFile{path: tc.pluginFile.path + ".stderr.tmp"}
+		tc.outFile = testFile{path: tc.pluginFile.path + ".stdout.tmp"}
+		tc.goldenOutFile = testFile{path: tc.pluginFile.path + ".stdout"}
+		tc.goldenErrFile = testFile{path: tc.pluginFile.path + ".stderr"}
+		tests = append(tests, &tc)
 	}
 
-	for _, pair := range tests {
-		t.Run(pair.file, func(t *testing.T) {
+	for _, tc := range tests {
+		t.Run(tc.pluginFile.path, func(t *testing.T) {
+			tmpdir := t.TempDir()
 			wd, err := os.Getwd()
 			if err != nil {
 				t.Fatal(err)
 			}
 			// listFiles(t, wd)
 
-			tmpdir := t.TempDir()
-			gotOut, gotErr, err := runProtoc(t, wd, tmpdir, filepath.Join("testdata", pair.file))
+			gotOut, gotErr, gotFiles, err := runProtoc(t, wd, tmpdir, tc.pluginFile.path)
+			tc.outFile.content = gotOut.Bytes()
+			tc.errFile.content = gotErr.Bytes()
+
 			if err != nil {
-				t.Log(string(gotOut))
-				t.Log(string(gotErr))
+				t.Log(gotOut.String())
+				t.Log(gotErr.String())
 				t.Fatal("protoc error:", err)
 			}
 
@@ -78,36 +96,72 @@ func TestGoldens(t *testing.T) {
 				if workspaceDir == "" {
 					t.Fatal("BUILD_WORKING_DIRECTORY not set!")
 				}
-				dir := filepath.Join(workspaceDir, "cmd", "protoc-gen-starlark", "testdata")
-				if err := os.WriteFile(filepath.Join(dir, pair.goldenOutFile), gotOut, os.ModePerm); err != nil {
+
+				dir := filepath.Join(workspaceDir, "cmd", "protoc-gen-starlark")
+				if err := os.WriteFile(filepath.Join(dir, tc.goldenOutFile.path), gotOut.Bytes(), os.ModePerm); err != nil {
 					t.Fatal("writing goldenOut file:", err)
 				}
-				if err := os.WriteFile(filepath.Join(dir, pair.goldenErrFile), gotErr, os.ModePerm); err != nil {
+				if err := os.WriteFile(filepath.Join(dir, tc.goldenErrFile.path), gotErr.Bytes(), os.ModePerm); err != nil {
 					t.Fatal("writing goldenErr file:", err)
 				}
+
+				genfiles := filepath.Join(dir, "genfiles")
+				for _, gotFile := range gotFiles {
+					filename := filepath.Join(genfiles, gotFile.path)
+					dirname := filepath.Dir(filename)
+					if err := os.MkdirAll(dirname, os.ModePerm); err != nil {
+						t.Fatalf("prepare dir %s: %v", filename, err)
+					}
+					if err := os.WriteFile(filename, gotFile.content, os.ModePerm); err != nil {
+						t.Fatalf("writing %s: %v", filename, err)
+					}
+					t.Log("wrote:", filename)
+				}
+				panic("wip")
 			} else {
-				wantOut, err := os.ReadFile(filepath.Join("testdata", pair.goldenOutFile))
+				wantOut, err := os.ReadFile(tc.goldenOutFile.path)
 				if err != nil {
 					t.Fatal("reading goldenOut file:", err)
 				}
-				wantErr, err := os.ReadFile(filepath.Join("testdata", pair.goldenErrFile))
+				wantErr, err := os.ReadFile(tc.goldenErrFile.path)
 				if err != nil {
 					t.Fatal("reading goldenErr file:", err)
 				}
-				if diff := cmp.Diff(string(wantOut), string(gotOut)); diff != "" {
+
+				if diff := cmp.Diff(string(wantOut), gotOut.String()); diff != "" {
 					t.Errorf("stdout (-want +got):\n%s", diff)
 				}
-				if diff := cmp.Diff(string(wantErr), string(gotErr)); diff != "" {
+				if diff := cmp.Diff(string(wantErr), gotErr.String()); diff != "" {
 					t.Log("want stderr:\n", string(wantErr))
-					t.Log("got stderr:\n", string(gotErr))
+					t.Log("got stderr:\n", gotErr.String())
 					t.Errorf("stderr (-want +got):\n%s", diff)
+				}
+
+				got := make(map[string]testFile)
+				for _, file := range gotFiles {
+					got[file.path] = file
+				}
+				genfiles := filepath.Join(filepath.Dir(tc.pluginFile.path), "genfiles")
+				wantFiles := collectFiles(t, genfiles)
+				for _, wantFile := range wantFiles {
+					gotFile, ok := got[wantFile.path]
+					if !ok {
+						t.Error("wanted generated file (not found):", wantFile.path)
+					}
+					delete(got, gotFile.path)
+					if diff := cmp.Diff(string(wantFile.content), string(gotFile.content)); diff != "" {
+						t.Errorf("%s (-want +got):\n%s", wantFile.path, diff)
+					}
+				}
+				for _, gotFile := range got {
+					t.Errorf("unexpected generated file: %s", gotFile.path)
 				}
 			}
 		})
 	}
 }
 
-func runProtoc(t *testing.T, cwd, dir string, filename string) ([]byte, []byte, error) {
+func runProtoc(t *testing.T, cwd, dir string, filename string) (stdout bytes.Buffer, stderr bytes.Buffer, files []testFile, err error) {
 	listFiles(t, ".")
 	cmd := exec.Command("protoc.exe",
 		"--proto_path=.",
@@ -115,22 +169,44 @@ func runProtoc(t *testing.T, cwd, dir string, filename string) ([]byte, []byte, 
 		"--unittest_out="+dir,
 		"google/protobuf/unittest.proto",
 	)
-
 	cmd.Env = []string{
 		"PROTOC_GEN_STARLARK_FILE=" + filename,
 		"PATH=" + cwd,
 	}
-
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	cmd.Dir = cwd
 
-	if err := cmd.Run(); err != nil {
-		return stdout.Bytes(), stderr.Bytes(), err
+	if err = cmd.Run(); err != nil {
+		return
 	}
-	return stdout.Bytes(), stderr.Bytes(), nil
+
+	files = collectFiles(t, dir)
+
+	return
+}
+
+func collectFiles(t *testing.T, dir string) (files []testFile) {
+	if err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		files = append(files, testFile{
+			path:    strings.TrimPrefix(path[len(dir):], "/"),
+			content: data,
+		})
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	return
 }
 
 func listFiles(t *testing.T, dir string) error {
