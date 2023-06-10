@@ -107,10 +107,19 @@ Alternatively, a shell script can be used to wrap the invocation of the plugin:
 ```sh
 #!/bin/bash
 
+# protoc-gen-foo.sh wraps protoc-gen-starlark and sets
+# the file argument explicitly.
+
 set -euox pipefail
 
 /usr/bin/protoc-gen-starlark \
     -file ./tools/protoc-gen-foo.star
+```
+
+```sh
+$ protoc \
+  --foo_out=./gendir \
+  --plugin=protoc-gen-foo=./tools/protoc-gen-foo.sh
 ```
 
 By default, the message types from
