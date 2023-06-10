@@ -216,14 +216,6 @@ func listFiles(t *testing.T, dir string) error {
 			t.Logf("%v\n", err)
 			return err
 		}
-		// if info.Mode()&os.ModeSymlink > 0 {
-		// 	link, err := os.Readlink(path)
-		// 	if err != nil {
-		// 		return err
-		// 	}
-		// 	t.Logf("%s -> %s", path, link)
-		// 	return nil
-		// }
 		t.Log(strings.TrimPrefix(path, dir+"/"))
 		return nil
 	})
