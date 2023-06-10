@@ -14,7 +14,8 @@
   </tr>
 </table>
 
-`protoc-gen-starlark` is a scriptable protocol buffer plugin.  It's arguably the easiest way to write a protoc plugin.
+`protoc-gen-starlark` is a scriptable protocol buffer plugin.  It might juse be
+the the easiest way to write a protoc plugin! 😍
 
 ## Installation
 
@@ -65,9 +66,13 @@ def main(ctx):
     return [generate(ctx.vars["request"])]
 ```
 
-Although starlark is an interpreter language, the protobuf message types are stongly typed: it is an error to set/get fields that are not part of the message definition.  See [stackb/grpc-starlark](https://github.com/stackb/grpc-starlark) and [stripe/skycfg](https://github.com/stripe/skycfg) for more details about this.
+Although starlark is an interpreted language, the protobuf message types are stongly typed: it is an error to set/get fields that are not part of the message definition.  See [stackb/grpc-starlark](https://github.com/stackb/grpc-starlark) and [stripe/skycfg](https://github.com/stripe/skycfg) for more details about this.
 
-The sample protoc invocation might look something like:
+> `protoc-gen-starlark` is built using
+> [stackb/grpc-starlark](https://github.com/stackb/grpc-starlark) and shares the
+> same command line flags.
+
+A sample protoc invocation might look something like:
 
 ```sh
 $ export PROTOC_GEN_STARLARK_SCRIPT=foo.star
@@ -96,3 +101,18 @@ $ protoc \
   --plugin=protoc-gen-bar=./tools/protoc-gen-bar
 ```
 
+Alternatively, a shell script can be used to wrap the invocation of the plugin:
+
+```sh
+#!/bin/bash
+
+set -euox pipefail
+
+/usr/bin/protoc-gen-starlark \
+    -file ./tools/protoc-gen-foo.star
+```
+
+By default, the message types from
+[plugin.proto](https://github.com/protocolbuffers/protobuf/blob/main/src/google/protobuf/compiler/plugin.proto)
+are pre-loaded.  You can make additional types available to `proto.package`
+using the `--protoset=/path/to/a/descriptor_set_out.pb` flag.
