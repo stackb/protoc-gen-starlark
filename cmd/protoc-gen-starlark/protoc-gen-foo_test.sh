@@ -12,7 +12,7 @@ file_exists_or_die() {
 # Arrange
 mkdir gen
 
-# Action
+# Act
 ./cmd/protoc-gen-starlark/protoc.exe \
     --descriptor_set_in=./cmd/protoc-gen-starlark/unittest_descriptor.pb \
     --foo_out=gen \
