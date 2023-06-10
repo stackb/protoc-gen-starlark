@@ -67,9 +67,9 @@ go_test(
     name = "protoc-gen-starlark_test",
     srcs = ["main_test.go"],
     data = glob(["testdata/**"]) + [
-        "descriptor",
         "protoc.exe",
-        "protoc-gen-starlark.exe",
+        "protoc-gen-unittest",
+        "unittest_descriptor",
     ],
     deps = [
         "@com_github_google_go_cmp//cmp",
@@ -86,16 +86,14 @@ genrule(
 )
 
 genrule(
-    name = "protoc-gen-starlark_exe",
+    name = "protoc-gen-unittest_bin",
     srcs = [":protoc-gen-starlark"],
-    outs = ["protoc-gen-starlark.exe"],
+    outs = ["protoc-gen-unittest"],
     cmd = "cp $< $@",
     executable = True,
 )
 
 proto_descriptor_set(
-    name = "descriptor",
-    deps = [
-        "@protoapis//google/protobuf:unittest_proto",
-    ],
+    name = "unittest_descriptor",
+    deps = ["@protoapis//google/protobuf:unittest_proto"],
 )

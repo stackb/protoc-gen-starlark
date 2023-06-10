@@ -59,8 +59,12 @@ func (p *Plugin) Run(args []string) error {
 	}
 
 	cmd := os.Args[0]
-	if cfg.File == "" && fileExists(cmd+".star") {
-		cfg.File = cmd + ".star"
+	if cfg.File == "" {
+		if file, ok := os.LookupEnv("PROTOC_GEN_STARLARK_FILE"); ok {
+			cfg.File = file
+		} else if fileExists(cmd + ".star") {
+			cfg.File = cmd + ".star"
+		}
 	}
 
 	pg, err := program.NewProgram(cfg)

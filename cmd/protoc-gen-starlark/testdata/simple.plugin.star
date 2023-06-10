@@ -1,30 +1,38 @@
 pb = proto.package("google.protobuf")
 compilerpb = proto.package("google.protobuf.compiler")
 
-fake_request = compilerpb.CodeGeneratorRequest(
-    proto_file = [
-        pb.FileDescriptorProto(
-            name = "a.proto",
-        ),
-    ],
-)
+def generate_enum_type(enum):
+    return [
+        "## enum: " + enum.name,
+        "",
+    ]
 
-def generate_txt_file(proto_file):
+def generate_message_type(message):
+    return [
+        "## message: " + message.name,
+        "",
+    ]
+
+def generate_md(proto_file):
+    lines = []
+    for m in proto_file.message_type:
+        lines += generate_message_type(m)
+    for m in proto_file.enum_type:
+        lines += generate_enum_type(m)
+
     return compilerpb.CodeGeneratorResponse.File(
-        name = proto_file.name + ".txt",
-        content = "Fake Content",
+        name = proto_file.name + ".md",
+        content = "\n".join(lines),
     )
 
 def generate(request):
     generated_files = []
     for file in request.proto_file:
-        generated_files.append(generate_txt_file(file))
+        generated_files.append(generate_md(file))
 
-    response = compilerpb.CodeGeneratorResponse(
+    return [compilerpb.CodeGeneratorResponse(
         file = generated_files,
-    )
-    return [response]
+    )]
 
 def main(ctx):
-    return generate(ctx.vars.request)
-    # return generate(fake_request)
+    return generate(ctx.vars["request"])

@@ -64,10 +64,10 @@ func TestGoldens(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			listFiles(t, wd)
+			// listFiles(t, wd)
 
 			tmpdir := t.TempDir()
-			gotOut, gotErr, err := runProtoc(wd, tmpdir, pair.file)
+			gotOut, gotErr, err := runProtoc(t, wd, tmpdir, filepath.Join("testdata", pair.file))
 			if err != nil {
 				t.Log(string(gotOut))
 				t.Log(string(gotErr))
@@ -107,20 +107,25 @@ func TestGoldens(t *testing.T) {
 	}
 }
 
-func runProtoc(cwd, dir string, filename string) ([]byte, []byte, error) {
-	pluginPath := filepath.Join(cwd, "protoc-gen-starlark.exe")
+func runProtoc(t *testing.T, cwd, dir string, filename string) ([]byte, []byte, error) {
+	listFiles(t, ".")
 	cmd := exec.Command("protoc.exe",
-		"--descriptor_set_in=descriptor.pb",
-		"--starlark_out="+dir,
-		"--plugin=plugin-gen-starlark="+pluginPath,
+		"--proto_path=.",
+		"--descriptor_set_in=unittest_descriptor.pb",
+		"--unittest_out="+dir,
 		"google/protobuf/unittest.proto",
 	)
+
+	cmd.Env = []string{
+		"PROTOC_GEN_STARLARK_FILE=" + filename,
+		"PATH=" + cwd,
+	}
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
-	// cmd.Dir = dir
+	cmd.Dir = cwd
 
 	if err := cmd.Run(); err != nil {
 		return stdout.Bytes(), stderr.Bytes(), err
