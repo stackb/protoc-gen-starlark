@@ -112,8 +112,6 @@ func runProtoc(cwd, dir string, filename string) ([]byte, []byte, error) {
 	cmd := exec.Command("protoc.exe",
 		"--descriptor_set_in=descriptor.pb",
 		"--starlark_out="+dir,
-		// "--star_out="+dir,
-		// "--star_opt=hello",
 		"--plugin=plugin-gen-starlark="+pluginPath,
 		"google/protobuf/unittest.proto",
 	)

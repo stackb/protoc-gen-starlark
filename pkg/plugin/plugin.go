@@ -48,7 +48,7 @@ func (p *Plugin) Run(args []string) error {
 	}
 
 	cfg := program.NewConfig()
-	if err := cfg.ParseArgs(nil); err != nil {
+	if err := cfg.ParseArgs(args); err != nil {
 		return fmt.Errorf("parsing args: %w", err)
 	}
 	cfg.ProtoFiles = protodescriptorset.MergeFilesIgnoreConflicts(cfg.ProtoFiles, files)

@@ -7,9 +7,7 @@ test:
 	bazel test ... --runs_per_test=30
 
 golden:
-	bazel run //pkg/plugin:plugin_test \
-		-- \
-		--update
+	bazel run //pkg/plugin:plugin_test -- --update
 
 .PHONY: tidy
 tidy:
