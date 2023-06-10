@@ -4,15 +4,10 @@ load("@build_stack_rules_proto//rules:proto_gazelle.bzl", "DEFAULT_LANGUAGES", "
 exports_files(["rules_proto_config.yaml"])
 
 # -- Gazelle language "walk" ---
-# gazelle:exclude vendor
-# gazelle:ignore testdata
-
 # -- Gazelle language "resolve" ---
-
 # -- Gazelle language "go" ---
 # gazelle:prefix github.com/stackb/protoc-gen-starlark
 # gazelle:go_generate_proto false
-
 # -- Gazelle language "protobuf" ---
 
 gazelle_binary(

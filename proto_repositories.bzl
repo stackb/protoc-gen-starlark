@@ -25,7 +25,6 @@ def proto_repositories():
             "gazelle:exclude testdata",
             "gazelle:exclude google/protobuf/compiler/ruby",
             "gazelle:proto_language descriptor enable true",
-            "gazelle:proto_language go enable true",
         ],
         build_file_expunge = True,
         build_file_proto_mode = "file",

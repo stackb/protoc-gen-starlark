@@ -15,6 +15,7 @@ def repositories():
     bazel_gazelle()  # via <TOP>
     build_stack_rules_proto()
     protobuf_core_deps()
+    # _local_com_github_stackb_grpc_starlark() # for development
 
 def protobuf_core_deps():
     bazel_skylib()  # via com_google_protobuf
@@ -138,4 +139,10 @@ def com_google_protobuf():
         urls = [
             "https://github.com/protocolbuffers/protobuf/archive/v3.14.0.tar.gz",
         ],
+    )
+
+def _local_com_github_stackb_grpc_starlark():
+    native.local_repository(
+        name = "com_github_stackb_grpc_starlark",
+        path = "/Users/pcj/go/src/github.com/stackb/grpc-starlark",
     )

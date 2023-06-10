@@ -1,4 +1,5 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
+load("@rules_proto//proto:defs.bzl", "proto_descriptor_set")
 load("//:platforms.bzl", "platforms")
 
 # gazelle:ignore testdata
@@ -6,20 +7,9 @@ load("//:platforms.bzl", "platforms")
 go_library(
     name = "protoc-gen-starlark_lib",
     srcs = ["main.go"],
-    embedsrcs = ["plugin_descriptor.pb"],
     importpath = "github.com/stackb/grpc-starlark/cmd/protoc-gen-starlark",
     visibility = ["//visibility:private"],
-    deps = [
-        "@com_github_stackb_grpc_starlark//pkg/program",
-        "@com_github_stackb_grpc_starlark//pkg/protodescriptorset",
-        "@com_github_stripe_skycfg//go/protomodule",
-        "@net_starlark_go//starlark",
-        "@org_golang_google_protobuf//proto",
-        "@org_golang_google_protobuf//reflect/protodesc",
-        "@org_golang_google_protobuf//reflect/protoreflect",
-        "@org_golang_google_protobuf//reflect/protoregistry",
-        "@org_golang_google_protobuf//types/pluginpb",
-    ],
+    deps = ["//pkg/plugin"],
 )
 
 go_binary(
@@ -75,10 +65,34 @@ go_binary(
 go_test(
     name = "protoc-gen-starlark_test",
     srcs = ["main_test.go"],
-    data = glob(["testdata/**"]),
-    embed = [":protoc-gen-starlark_lib"],
+    data = glob(["testdata/**"]) + [
+        "protoc.exe",
+        "protoc-gen-unittest",
+        "unittest_descriptor",
+    ],
     deps = [
         "@com_github_google_go_cmp//cmp",
         "@net_starlark_go//lib/time",
     ],
+)
+
+genrule(
+    name = "protoc_exe",
+    srcs = ["@com_google_protobuf//:protoc"],
+    outs = ["protoc.exe"],
+    cmd = "cp $< $@",
+    executable = True,
+)
+
+genrule(
+    name = "protoc-gen-unittest_bin",
+    srcs = [":protoc-gen-starlark"],
+    outs = ["protoc-gen-unittest"],
+    cmd = "cp $< $@",
+    executable = True,
+)
+
+proto_descriptor_set(
+    name = "unittest_descriptor",
+    deps = ["@protoapis//google/protobuf:unittest_proto"],
 )
