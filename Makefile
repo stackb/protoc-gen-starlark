@@ -8,7 +8,7 @@ test:
 
 golden:
 	bazel run //cmd/protoc-gen-starlark:protoc-gen-starlark_test -- --update
-	# bazel run //pkg/plugin:plugin_test -- --update
+	bazel run //pkg/plugin:plugin_test -- --update
 
 .PHONY: tidy
 tidy:

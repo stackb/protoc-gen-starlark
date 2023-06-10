@@ -4,18 +4,17 @@ compilerpb = proto.package("google.protobuf.compiler")
 def generate_md_enum_type(enum):
     return [
         "## enum: " + enum.name,
-        "",
     ]
 
 def generate_md_message_type(message):
     return [
         "## message: " + message.name,
-        "",
     ]
 
 def generate_md(proto_file):
     lines = [
         "# Types of " + proto_file.name,
+        "",
     ]
     for m in proto_file.message_type:
         lines += generate_md_message_type(m)
