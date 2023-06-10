@@ -14,7 +14,7 @@
   </tr>
 </table>
 
-`protoc-gen-starlark` is a scriptable protocol buffer plugin.  It might juse be
+`protoc-gen-starlark` is a scriptable protocol buffer plugin.  It might just be
 the the easiest way to write a protoc plugin! 😍
 
 ## Installation
@@ -44,7 +44,7 @@ def generate(request):
     Args:
       request: the pb.CodeGeneratorRequest that was read from stdin.
     Returns:
-      a pb.CodeGeneratorRequest
+      a pb.CodeGeneratorResponse
     """
     return pb.CodeGeneratorResponse(
         error = "not implemented",
@@ -56,11 +56,12 @@ def main(ctx):
     Args:
       ctx: the script context.  It has a struct member named
       'vars' which is a StringDict of variables injected into
-      the entrypoint.  vars will contain an entry named "request"
-      that is the pb.CodeGeneratorRequest read from stdin.
+      the entrypoint.  vars is guaranteed to have an entry named
+      "request" that is the pb.CodeGeneratorRequest read from stdin.
     Returns:
-      A single pb.CodeGeneratorResponse.  The return value from 
-      `main` must be a list however, so it is wrapped in a list.
+      A single pb.CodeGeneratorResponse.  Per skycfg semantics,
+      the return value from `main` must be a list however so it
+      is wrapped accordingly.
 
     """
     return [generate(ctx.vars["request"])]
