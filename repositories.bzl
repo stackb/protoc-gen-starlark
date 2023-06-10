@@ -15,7 +15,7 @@ def repositories():
     bazel_gazelle()  # via <TOP>
     build_stack_rules_proto()
     protobuf_core_deps()
-    _com_github_stackb_grpc_starlark()
+    # _local_com_github_stackb_grpc_starlark() # for development
 
 def protobuf_core_deps():
     bazel_skylib()  # via com_google_protobuf
@@ -141,22 +141,7 @@ def com_google_protobuf():
         ],
     )
 
-def _com_github_stackb_grpc_starlark():
-    # Branch: master
-    # Commit: 3306e2ae6ad7cb36771ac57f03702d9e5405d75c
-    # Date: 2023-06-08 05:02:05 +0000 UTC
-    # URL: https://github.com/stackb/grpc-starlark/commit/3306e2ae6ad7cb36771ac57f03702d9e5405d75c
-    #
-    # Refactor Config, add stablejson, other improvements (#20)
-    # * Add stablejson
-    # Size: 88421 (88 kB)
-    # _maybe(
-    #     http_archive,
-    #     name = "com_github_stackb_grpc_starlark",
-    #     sha256 = "600d27383b1d9ebb7c3fd58b56266646880caf869c07c5e075143e33cec7f078",
-    #     strip_prefix = "grpc-starlark-3306e2ae6ad7cb36771ac57f03702d9e5405d75c",
-    #     urls = ["https://github.com/stackb/grpc-starlark/archive/3306e2ae6ad7cb36771ac57f03702d9e5405d75c.tar.gz"],
-    # )
+def _local_com_github_stackb_grpc_starlark():
     native.local_repository(
         name = "com_github_stackb_grpc_starlark",
         path = "/Users/pcj/go/src/github.com/stackb/grpc-starlark",

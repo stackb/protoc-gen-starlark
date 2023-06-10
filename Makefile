@@ -22,3 +22,9 @@ plugin_proto_descriptor:
 	bazel build @protoapis//google/protobuf/compiler:plugin_descriptor
 	cp -f bazel-bin/external/protoapis/google/protobuf/compiler/plugin_descriptor.pb pkg/plugin
 
+.PHONY: unittest_proto_descriptor
+unittest_proto_descriptor:
+	bazel build @protoapis//google/protobuf:unittest_descriptor
+	cp -f bazel-bin/external/protoapis/google/protobuf/unittest_descriptor.pb pkg/plugin
+
+

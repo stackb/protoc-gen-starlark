@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/google/go-cmp v0.5.9
-	github.com/stackb/grpc-starlark v0.4.0
+	github.com/stackb/grpc-starlark v0.5.1-0.20230610020654-8d58c7b27b74
 	github.com/stripe/skycfg v0.1.1
 	go.starlark.net v0.0.0-20230525235612-a134d8f9ddca
 	google.golang.org/protobuf v1.30.0

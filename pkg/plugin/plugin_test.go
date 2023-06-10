@@ -16,7 +16,7 @@ import (
 
 var update = flag.Bool("update", false, "update golden files")
 
-//go:embed descriptor.pb
+//go:embed unittest_descriptor.pb
 var unittestDescriptor []byte
 
 func TestGoldens(t *testing.T) {
